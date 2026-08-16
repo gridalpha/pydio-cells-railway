@@ -77,4 +77,14 @@ umask 077
 
 echo "railway-entrypoint: site ${CELLS_SITE_BIND} external=${CELLS_SITE_EXTERNAL:-<unset>} mongo=$([ -n "${MONGO_DSN:-}" ] && echo on || echo off)"
 
+# `cells configure` returns as soon as a YAML install completes ("you can now use
+# the start command") instead of chaining into the server, so the two phases are
+# run explicitly here. Leaving it to the image entrypoint makes the very first
+# container install and then exit 0, which Railway reports as a successful
+# deployment serving nothing.
+if ! cells admin config check >/dev/null 2>&1; then
+    echo "railway-entrypoint: no existing configuration, running headless install"
+    cells configure
+fi
+
 exec docker-entrypoint.sh "$@"
